@@ -8,23 +8,21 @@ import (
 )
 
 type AmqpQEReceiverBuilder struct {
-	receiver         *AmqpQEReceiver
+	receiver *AmqpQEClientCommon
 }
 
 func NewReceiverBuilder(name string, impl AmqpQEClientImpl, data framework.ContextData, url string) *AmqpQEReceiverBuilder {
 	rb := new(AmqpQEReceiverBuilder)
-	rb.receiver = &AmqpQEReceiver{
-		AmqpQEClientCommon: AmqpQEClientCommon{
-			AmqpClientCommon: amqp.AmqpClientCommon{
-				Context: data,
-				Name:    name,
-				Url:     url,
-				Timeout: Timeout,
-				Params:  []amqp.Param{},
-				Mutex:   sync.Mutex{},
-			},
-			Implementation: impl,
+	rb.receiver = &AmqpQEClientCommon{
+		AmqpClientCommon: amqp.AmqpClientCommon{
+			Context: data,
+			Name:    name,
+			Url:     url,
+			Timeout: Timeout,
+			Params:  []amqp.Param{},
+			Mutex:   sync.Mutex{},
 		},
+		Implementation: impl,
 	}
 	return rb
 }
@@ -39,7 +37,26 @@ func (a *AmqpQEReceiverBuilder) Messages(count int) *AmqpQEReceiverBuilder {
 	return a
 }
 
-func (a *AmqpQEReceiverBuilder) Build() (*AmqpQEReceiver, error) {
+func (a *AmqpQEReceiverBuilder) addSpecificImplementationOptions(cBuilder *framework.ContainerBuilder) {
+	switch a.receiver.Implementation {
+	// URL
+	case MultipleReceiversPython:
+		{
+			cBuilder.AddArgs("--address", a.receiver.Url)
+			cBuilder.AddArgs("--connections", "100") //total connections
+			cBuilder.AddArgs("--links", "500")       //total links per connection
+		}
+	default:
+		{
+			cBuilder.AddArgs("--broker-url", a.receiver.Url)
+			cBuilder.AddArgs("--count", strconv.Itoa(a.receiver.MessageCount))
+			cBuilder.AddArgs("--timeout", strconv.Itoa(a.receiver.Timeout))
+			cBuilder.AddArgs("--log-msgs", "json")
+		}
+	}
+}
+
+func (a *AmqpQEReceiverBuilder) Build() (*AmqpQEClientCommon, error) {
 	// Preparing Pod, Container (commands and args) and etc
 	podBuilder := framework.NewPodBuilder(a.receiver.Name, a.receiver.Context.Namespace)
 	podBuilder.AddLabel("amqp-client-impl", QEClientImageMap[a.receiver.Implementation].Name)
@@ -51,21 +68,7 @@ func (a *AmqpQEReceiverBuilder) Build() (*AmqpQEReceiver, error) {
 	cBuilder := framework.NewContainerBuilder(a.receiver.Name, QEClientImageMap[a.receiver.Implementation].Image)
 	cBuilder.WithCommands(QEClientImageMap[a.receiver.Implementation].CommandReceiver)
 
-	//
-	// Adds args (may vary from one implementation to another)
-	//
-
-	// URL
-	cBuilder.AddArgs("--broker-url", a.receiver.Url)
-
-	// Message count
-	cBuilder.AddArgs("--count", strconv.Itoa(a.receiver.MessageCount))
-
-	// Timeout
-	cBuilder.AddArgs("--timeout", strconv.Itoa(a.receiver.Timeout))
-
-	// Static options
-	cBuilder.AddArgs("--log-msgs", "json")
+	a.addSpecificImplementationOptions(cBuilder)
 
 	// Retrieving container and adding to pod
 	c := cBuilder.Build()

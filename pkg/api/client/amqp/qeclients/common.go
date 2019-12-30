@@ -22,10 +22,6 @@ type AmqpQESender struct {
 	MessageContentFromFile string
 }
 
-type AmqpQEReceiver struct {
-	AmqpQEClientCommon
-}
-
 // Result common implementation for QE Clients
 func (a *AmqpQEClientCommon) Result() amqp.ResultData {
 

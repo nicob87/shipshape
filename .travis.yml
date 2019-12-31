@@ -37,5 +37,6 @@ script:
   - export GO111MODULE=on
   - cd $GOPATH/src/github.com/rh-messaging/shipshape
   - make
+  - make uml
   - make cluster-test
 

@@ -28,6 +28,17 @@ before_install:
 
   # Get tools
   - export GO111MODULE=off; go get sigs.k8s.io/kind
+  - echo "======"
+  - export GOPATH=`go env GOPATH`
+  - echo "go11module = ${GO111MODULE}"
+  - echo "path = ${PATH}"
+  - echo "gopath = ${GOPATH}"
+  #- echo "path = ${PATH}"
+  - go get github.com/jfeliu007/goplantuml/parser
+  - go get github.com/jfeliu007/goplantuml/cmd/goplantuml
+  - cd $GOPATH/src/github.com/jfeliu007/goplantuml
+  - go install ./...
+  - cd -
 
   # Create a new Kubernetes cluster using KinD
   - kind create cluster

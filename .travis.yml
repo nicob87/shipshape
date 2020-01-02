@@ -33,7 +33,7 @@ before_install:
   - echo "go11module = ${GO111MODULE}"
   - echo "path = ${PATH}"
   - echo "gopath = ${GOPATH}"
-  #- echo "path = ${PATH}"
+  - echo "path = ${PATH}"
   - go get github.com/jfeliu007/goplantuml/parser
   - go get github.com/jfeliu007/goplantuml/cmd/goplantuml
   - cd $GOPATH/src/github.com/jfeliu007/goplantuml
